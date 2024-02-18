@@ -1,0 +1,4 @@
+{
+  "filter_paths": "(mocks/|test/|@openzeppelin/|node_modules/)",
+  "solc_remaps": "@=node_modules/@"
+}

@@ -2,9 +2,8 @@
 
 [![Continuous integration](https://github.com/PaintSwap/samwitch-rng/actions/workflows/main.yml/badge.svg)](https://github.com/PaintSwap/samwitch-rng/actions/workflows/main.yml)
 
-![swrng](https://github.com/PaintSwap/samwitch-rng/assets/84033732/977c060f-e6e7-418f-9d44-1012599f41c6)
-
-This is a simple Random Number Generator contract/consumer.
+![swrng](https://github.com/PaintSwap/samwitch-rng/assets/84033732/64e02c68-dfae-4e8f-aee3-1acc8d2966d6)
+This is a simple Random Number Generator contract/consumer. It is gas efficient as it does not check for any request ids which exist, it's common for the consumers to check this already, and is actually a requirement with SWRNG.
 
 To start copy the `.env.sample` file to `.env` and fill in `PRIVATE_KEY` at a minimum (starts with `0x`).
 

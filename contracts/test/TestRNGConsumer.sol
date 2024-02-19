@@ -6,8 +6,8 @@ import {SamWitchRNG} from "../SamWitchRNG.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TestRNGConsumer is ISamWitchRNGConsumer, Ownable {
-  error OnlySamWitchRNG();
   error ShouldRevertTrue();
+  error OnlySamWitchRNG();
 
   SamWitchRNG public samWitchRNG;
   mapping(bytes32 requestId => uint[] randomWords) public allRandomWords;

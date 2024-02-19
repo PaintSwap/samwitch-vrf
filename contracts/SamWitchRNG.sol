@@ -14,8 +14,8 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint numWords);
   event RandomWordsFulfilled(bytes32 requestId, bytes data);
 
-  error InvalidConsumer(address consumer);
   error FulfillmentFailed(bytes32 requestId);
+  error InvalidConsumer(address consumer);
   error OnlyCaller();
   error RequestAlreadyFulfilled();
   error RequestIdDoesNotExist(bytes32 requestId);

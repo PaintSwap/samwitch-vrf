@@ -7,9 +7,9 @@ describe("SamWitchRNG", function () {
   async function deployContractsFixture() {
     const [owner, alice, bob, charlie, dev] = await ethers.getSigners();
 
-    const caller = bob.address;
+    const oracle = bob.address;
     const SamWitchRNG = await ethers.getContractFactory("SamWitchRNG");
-    const samWitchRNG = (await upgrades.deployProxy(SamWitchRNG, [caller], {
+    const samWitchRNG = (await upgrades.deployProxy(SamWitchRNG, [oracle], {
       kind: "uups",
     })) as unknown as SamWitchRNG;
 
@@ -43,7 +43,10 @@ describe("SamWitchRNG", function () {
     const randomNum = ethers.hexlify(ethers.randomBytes(32));
     const gasLimit = 1_000_000;
     const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[randomNum]]);
-    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, rngConsumer, gasLimit);
+    const signature = await bob.signMessage(
+      ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
+    );
+    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit);
     receipt = await tx.wait();
     log = samWitchRNG.interface.parseLog(receipt?.logs[0]);
 
@@ -73,26 +76,42 @@ describe("SamWitchRNG", function () {
 
     let log = samWitchRNG.interface.parseLog(receipt?.logs[0]);
     const requestId = log.args[0];
-
     const randomNum = ethers.hexlify(ethers.randomBytes(32));
-    const gasLimit = 1_000_000;
     const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[randomNum]]);
-    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, rngConsumer, gasLimit);
+    const signature = await bob.signMessage(
+      ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
+    );
+
+    const gasLimit = 1_000_000;
+    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit);
     receipt = await tx.wait();
     log = samWitchRNG.interface.parseLog(receipt?.logs[0]);
 
     // Can call fulfill again, it is a requirement that it is reverted on the consumer side if the requestId is already fulfilled
-    await expect(samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, rngConsumer, gasLimit)).to.not.be
-      .reverted;
+    await expect(samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit)).to.not
+      .be.reverted;
   });
 
-  it("Only the caller can fulfill the random words", async function () {
-    const {samWitchRNG, rngConsumer, alice} = await loadFixture(deployContractsFixture);
+  it("Anyone can call fulfill as long as the signature is signed by the oracle", async function () {
+    const {samWitchRNG, rngConsumer, alice, bob} = await loadFixture(deployContractsFixture);
     const gasLimit = 1_000_000;
     const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[1]]);
+
+    // Create a hash of your data
+    const requestId = ethers.encodeBytes32String("1");
+    const hash = ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data]);
+
+    // Sign the hash
+    const signatureWrongSigner = await alice.signMessage(ethers.toBeArray(hash));
+
     await expect(
-      samWitchRNG.connect(alice).fulfillRandomWords(ethers.encodeBytes32String("1"), data, rngConsumer, gasLimit),
-    ).to.be.revertedWithCustomError(samWitchRNG, "OnlyCaller");
+      samWitchRNG.connect(alice).fulfillRandomWords(requestId, data, signatureWrongSigner, rngConsumer, gasLimit),
+    ).to.be.revertedWithCustomError(samWitchRNG, "OnlyOracle");
+
+    const signatureCorrectSigner = await bob.signMessage(ethers.toBeArray(hash));
+    await expect(
+      samWitchRNG.connect(alice).fulfillRandomWords(requestId, data, signatureCorrectSigner, rngConsumer, gasLimit),
+    ).to.not.be.reverted;
   });
 
   it("Consumer ran out of gas", async function () {
@@ -112,8 +131,11 @@ describe("SamWitchRNG", function () {
     const randomNum = ethers.hexlify(ethers.randomBytes(32));
     const gasLimit = 1;
     const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[randomNum]]);
+    const signature = await bob.signMessage(
+      ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
+    );
     await expect(
-      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, rngConsumer, gasLimit),
+      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit),
     ).to.be.revertedWithCustomError(samWitchRNG, "FulfillmentFailed");
   });
 
@@ -135,8 +157,11 @@ describe("SamWitchRNG", function () {
     const gasLimit = 1_000_000;
     await rngConsumer.setShouldRevert(true);
     const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[randomNum]]);
+    const signature = await bob.signMessage(
+      ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
+    );
     await expect(
-      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, rngConsumer, gasLimit),
+      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit),
     ).to.be.revertedWithCustomError(samWitchRNG, "FulfillmentFailed");
   });
 

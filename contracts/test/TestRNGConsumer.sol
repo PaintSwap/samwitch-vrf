@@ -28,11 +28,8 @@ contract TestRNGConsumer is ISamWitchRNGConsumer, Ownable {
     requestId = samWitchRNG.requestRandomWords(numWords);
   }
 
-// Called by the RNG contract to fulfill a random number request
-  function fulfillRandomWords(
-    bytes32 requestId,
-    bytes calldata data
-  ) external onlySamWitchRNG {
+  // Called by the RNG contract to fulfill a random number request
+  function fulfillRandomWords(bytes32 requestId, bytes calldata data) external onlySamWitchRNG {
     uint[] memory randomWords = abi.decode(data, (uint[]));
     allRandomWords[requestId] = randomWords;
     if (shouldRevert) {

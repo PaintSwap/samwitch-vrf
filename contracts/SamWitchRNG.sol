@@ -19,8 +19,6 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   error FulfillmentFailed(bytes32 requestId);
   error InvalidConsumer(address consumer);
   error OnlyOracle();
-  error RequestAlreadyFulfilled();
-  error RequestIdDoesNotExist(bytes32 requestId);
 
   mapping(address consumer => uint64 nonce) public consumers;
   address private oracle;
@@ -63,7 +61,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
     );
   }
 
-  /// @notice Called by the allowed oracle to fulfill the request
+  /// @notice Fulfill the request
   /// @param requestId Request ID
   /// @param randomWordsData The random words to assign (abi encoded)
   /// @param fulfillAddress Address that will be called to fulfill

@@ -12,7 +12,13 @@ import {ISamWitchVRFConsumer} from "./ISamWitchVRFConsumer.sol";
 /// @notice This contract listens for requests for VRF, and allows the oracle to fulfill random numbers
 contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
   event ConsumerRegistered(address consumer);
-  event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint256 numWords, uint256 nonce);
+  event RandomWordsRequested(
+    bytes32 requestId,
+    uint256 callbackGasLimit,
+    uint256 numWords,
+    address consumer,
+    uint64 nonce
+  );
   event RandomWordsFulfilled(bytes32 requestId, uint[] randomWords, address oracle);
 
   error FulfillmentFailed(bytes32 requestId);
@@ -60,7 +66,7 @@ contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
       abi.encode(requestId, callbackGasLimit, numWords, msg.sender, block.chainid)
     );
 
-    emit RandomWordsRequested(requestId, msg.sender, numWords, nonce);
+    emit RandomWordsRequested(requestId, callbackGasLimit, numWords, msg.sender, nonce);
   }
 
   /// @notice Fulfill the request

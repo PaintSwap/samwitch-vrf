@@ -46,7 +46,7 @@ describe("SamWitchRNG", function () {
     const signature = await bob.signMessage(
       ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
     );
-    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit);
+    tx = await samWitchRNG.fulfillRandomWords(requestId, data, bob, signature, rngConsumer, gasLimit);
     receipt = await tx.wait();
     log = samWitchRNG.interface.parseLog(receipt?.logs[0]);
 
@@ -60,7 +60,7 @@ describe("SamWitchRNG", function () {
     const {bob} = await loadFixture(deployContractsFixture);
     const samWitchRNG = await ethers.deployContract("SamWitchRNG");
 
-    await expect(samWitchRNG.connect(bob).initialize(bob)).to.be.reverted;
+    await expect(samWitchRNG.initialize(bob)).to.be.reverted;
   });
 
   it("Fulfilling again is allowed (consumer must revert itself)", async function () {
@@ -83,13 +83,13 @@ describe("SamWitchRNG", function () {
     );
 
     const gasLimit = 1_000_000;
-    tx = await samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit);
+    tx = await samWitchRNG.fulfillRandomWords(requestId, data, bob, signature, rngConsumer, gasLimit);
     receipt = await tx.wait();
     log = samWitchRNG.interface.parseLog(receipt?.logs[0]);
 
     // Can call fulfill again, it is a requirement that it is reverted on the consumer side if the requestId is already fulfilled
-    await expect(samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit)).to.not
-      .be.reverted;
+    await expect(samWitchRNG.fulfillRandomWords(requestId, data, bob, signature, rngConsumer, gasLimit)).to.not.be
+      .reverted;
   });
 
   it("Anyone can call fulfill as long as the signature is signed by the oracle", async function () {
@@ -105,13 +105,32 @@ describe("SamWitchRNG", function () {
     const signatureWrongSigner = await alice.signMessage(ethers.toBeArray(hash));
 
     await expect(
-      samWitchRNG.connect(alice).fulfillRandomWords(requestId, data, signatureWrongSigner, rngConsumer, gasLimit),
-    ).to.be.revertedWithCustomError(samWitchRNG, "OnlyOracle");
+      samWitchRNG.connect(alice).fulfillRandomWords(requestId, data, bob, signatureWrongSigner, rngConsumer, gasLimit),
+    ).to.be.revertedWithCustomError(samWitchRNG, "InvalidSignature");
 
     const signatureCorrectSigner = await bob.signMessage(ethers.toBeArray(hash));
     await expect(
-      samWitchRNG.connect(alice).fulfillRandomWords(requestId, data, signatureCorrectSigner, rngConsumer, gasLimit),
+      samWitchRNG
+        .connect(alice)
+        .fulfillRandomWords(requestId, data, bob, signatureCorrectSigner, rngConsumer, gasLimit),
     ).to.not.be.reverted;
+  });
+
+  it("Must pass a real oracle to fulfil ", async function () {
+    const {samWitchRNG, rngConsumer, alice, bob} = await loadFixture(deployContractsFixture);
+    const gasLimit = 1_000_000;
+    const data = ethers.AbiCoder.defaultAbiCoder().encode(["uint256[]"], [[1]]);
+
+    // Create a hash of your data
+    const requestId = ethers.encodeBytes32String("1");
+    const hash = ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data]);
+
+    // Sign the hash
+    const signature = await alice.signMessage(ethers.toBeArray(hash));
+
+    await expect(
+      samWitchRNG.fulfillRandomWords(requestId, data, alice, signature, rngConsumer, gasLimit),
+    ).to.be.revertedWithCustomError(samWitchRNG, "OnlyOracle");
   });
 
   it("Consumer ran out of gas", async function () {
@@ -135,7 +154,7 @@ describe("SamWitchRNG", function () {
       ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
     );
     await expect(
-      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit),
+      samWitchRNG.fulfillRandomWords(requestId, data, bob, signature, rngConsumer, gasLimit),
     ).to.be.revertedWithCustomError(samWitchRNG, "FulfillmentFailed");
   });
 
@@ -161,15 +180,15 @@ describe("SamWitchRNG", function () {
       ethers.toBeArray(ethers.solidityPackedKeccak256(["bytes32", "bytes"], [requestId, data])),
     );
     await expect(
-      samWitchRNG.connect(bob).fulfillRandomWords(requestId, data, signature, rngConsumer, gasLimit),
+      samWitchRNG.fulfillRandomWords(requestId, data, bob, signature, rngConsumer, gasLimit),
     ).to.be.revertedWithCustomError(samWitchRNG, "FulfillmentFailed");
   });
 
   it("Registering consume can only be done by the owner", async function () {
-    const {samWitchRNG, rngConsumer, bob} = await loadFixture(deployContractsFixture);
+    const {samWitchRNG, rngConsumer, alice} = await loadFixture(deployContractsFixture);
 
     // samWitchRNG is allowed to call the oracle callbacks
-    await expect(samWitchRNG.connect(bob).registerConsumer(rngConsumer)).to.be.revertedWithCustomError(
+    await expect(samWitchRNG.connect(alice).registerConsumer(rngConsumer)).to.be.revertedWithCustomError(
       samWitchRNG,
       "OwnableUnauthorizedAccount",
     );

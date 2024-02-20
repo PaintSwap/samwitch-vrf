@@ -13,15 +13,16 @@ import {ISamWitchRNGConsumer} from "./ISamWitchRNGConsumer.sol";
 /// @notice This contract listens for requests for RNG, and allows the oracle to fulfill random numbers
 contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   event ConsumerRegistered(address consumer);
-  event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint numWords);
-  event RandomWordsFulfilled(bytes32 requestId, bytes data);
+  event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint numWords, uint nonce);
+  event RandomWordsFulfilled(bytes32 requestId, bytes data, address oracle);
 
   error FulfillmentFailed(bytes32 requestId);
   error InvalidConsumer(address consumer);
+  error InvalidSignature();
   error OnlyOracle();
 
   mapping(address consumer => uint64 nonce) public consumers;
-  address private oracle;
+  mapping(address oracles => bool) public oracles;
 
   // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
   // and some arithmetic operations.
@@ -36,8 +37,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   function initialize(address _oracle) external payable initializer {
     __UUPSUpgradeable_init();
     __Ownable_init(_msgSender());
-
-    oracle = _oracle;
+    oracles[_oracle] = true;
   }
 
   /// @notice Called by the requester to make a full request, which provides
@@ -57,7 +57,8 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
     emit RandomWordsRequested(
       requestId,
       msg.sender,
-      numWords
+      numWords,
+      nonce
     );
   }
 
@@ -69,15 +70,20 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   function fulfillRandomWords(
     bytes32 requestId,
     bytes calldata randomWordsData,
+    address oracle,
     bytes calldata signature,
     address fulfillAddress,
     uint gasAmount
   ) external returns (bool callSuccess) {
+    if (!oracles[oracle]) {
+      revert OnlyOracle();
+    }
+
     // Verify it was created by the oracle
     bytes32 signedDataHash = keccak256(abi.encodePacked(requestId, randomWordsData));
     bytes32 message = MessageHashUtils.toEthSignedMessageHash(signedDataHash);
     if (!SignatureChecker.isValidSignatureNow(oracle, message, signature)) {
-      revert OnlyOracle();
+      revert InvalidSignature();
     }
 
     // Call the consumer contract callback
@@ -88,7 +94,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
     );
     callSuccess = _callWithExactGas(gasAmount, fulfillAddress, data);
     if (callSuccess) {
-      emit RandomWordsFulfilled(requestId, randomWordsData);
+      emit RandomWordsFulfilled(requestId, randomWordsData, oracle);
     } else {
       revert FulfillmentFailed(requestId);
     }

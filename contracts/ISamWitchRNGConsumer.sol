@@ -7,7 +7,7 @@ interface ISamWitchRNGConsumer {
    * @notice implement it.
    *
    * @param requestId The Id initially returned by requestRandomness
-   * @param data the RNG output expanded to the requested number of words
+   * @param randomWords the RNG output expanded to the requested number of words
    */
-  function fulfillRandomWords(bytes32 requestId, bytes calldata data) external;
+  function fulfillRandomWords(bytes32 requestId, uint[] calldata randomWords) external;
 }

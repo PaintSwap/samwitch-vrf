@@ -1,7 +1,7 @@
 import hre, {ethers} from "hardhat";
 import {SamWitchRNG} from "../typechain-types";
-import { swrngAddressBeta, swrngAddressLive, verifyContracts } from "./helpers";
-import { networkConstants } from "../constants/network_constants";
+import {swrngAddressBeta, swrngAddressLive, verifyContracts} from "./helpers";
+import {networkConstants} from "../constants/network_constants";
 
 async function main() {
   const [owner] = await ethers.getSigners();
@@ -25,7 +25,8 @@ async function main() {
   tx = await swrng.registerConsumer(testRNGConsumer);
   await tx.wait();
 
-  tx = await testRNGConsumer.requestRandomWords(2);
+  const callbackGasLimit = 1_000_000;
+  tx = await testRNGConsumer.requestRandomWords(2, callbackGasLimit);
   await tx.wait();
   console.log("Request random");
 
@@ -34,7 +35,7 @@ async function main() {
     try {
       const addresses: string[] = [await testRNGConsumer.getAddress()];
       console.log("Verifying contracts...");
-      await verifyContracts(addresses, [swrngAddress]);
+      await verifyContracts(addresses, [[swrngAddress]]);
     } catch (e) {
       console.log(e);
     }

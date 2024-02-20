@@ -3,8 +3,7 @@ pragma solidity ^0.8.24;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {VRF} from "./VRF.sol";
 
 import {ISamWitchRNGConsumer} from "./ISamWitchRNGConsumer.sol";
 
@@ -13,20 +12,23 @@ import {ISamWitchRNGConsumer} from "./ISamWitchRNGConsumer.sol";
 /// @notice This contract listens for requests for RNG, and allows the oracle to fulfill random numbers
 contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   event ConsumerRegistered(address consumer);
-  event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint numWords, uint nonce);
-  event RandomWordsFulfilled(bytes32 requestId, bytes data, address oracle);
+  event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint256 numWords, uint256 nonce);
+  event RandomWordsFulfilled(bytes32 requestId, uint[] randomWords, address oracle);
 
   error FulfillmentFailed(bytes32 requestId);
   error InvalidConsumer(address consumer);
   error InvalidSignature();
+  error InvalidPublicKey();
   error OnlyOracle();
+  error CommitmentMismatch();
 
   mapping(address consumer => uint64 nonce) public consumers;
-  mapping(address oracles => bool) public oracles;
+  mapping(address oracles => bool isOracle) public oracles;
+  mapping(bytes32 requestId => bytes32 commitment) private requestCommitments;
 
   // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
   // and some arithmetic operations.
-  uint private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
+  uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -44,7 +46,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
   /// all of its parameters as arguments
   /// @param numWords Number of random words to request
   /// @return requestId Request ID
-  function requestRandomWords(uint numWords) external returns (bytes32 requestId) {
+  function requestRandomWords(uint256 numWords, uint256 callbackGasLimit) external returns (bytes32 requestId) {
     uint64 currentNonce = consumers[msg.sender];
     if (currentNonce == 0) {
       revert InvalidConsumer(msg.sender);
@@ -54,47 +56,62 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
     consumers[msg.sender] = currentNonce;
     requestId = _computeRequestId(msg.sender, nonce);
 
-    emit RandomWordsRequested(
-      requestId,
-      msg.sender,
-      numWords,
-      nonce
+    requestCommitments[requestId] = keccak256(
+      abi.encode(requestId, callbackGasLimit, numWords, msg.sender, block.chainid)
     );
+
+    emit RandomWordsRequested(requestId, msg.sender, numWords, nonce);
   }
 
   /// @notice Fulfill the request
   /// @param requestId Request ID
-  /// @param randomWordsData The random words to assign (abi encoded)
   /// @param fulfillAddress Address that will be called to fulfill
   /// @return callSuccess If the fulfillment call succeeded
   function fulfillRandomWords(
     bytes32 requestId,
-    bytes calldata randomWordsData,
     address oracle,
-    bytes calldata signature,
     address fulfillAddress,
-    uint gasAmount
+    uint256 callbackGasLimit,
+    uint256 numWords,
+    uint256[2] memory publicKey,
+    uint256[4] memory proof
   ) external returns (bool callSuccess) {
     if (!oracles[oracle]) {
       revert OnlyOracle();
     }
 
+    bytes32 commitment = keccak256(abi.encode(requestId, callbackGasLimit, numWords, fulfillAddress, block.chainid));
+    if (requestCommitments[requestId] != commitment) {
+      revert CommitmentMismatch();
+    }
+
     // Verify it was created by the oracle
-    bytes32 signedDataHash = keccak256(abi.encodePacked(requestId, randomWordsData));
-    bytes32 message = MessageHashUtils.toEthSignedMessageHash(signedDataHash);
-    if (!SignatureChecker.isValidSignatureNow(oracle, message, signature)) {
+    bool verified = VRF.verify(publicKey, proof, bytes.concat(commitment));
+    if (!verified) {
       revert InvalidSignature();
     }
+
+    if (VRF.pointToAddress(publicKey[0], publicKey[1]) != oracle) {
+      revert InvalidPublicKey();
+    }
+
+    // Get random words out of the proof
+    uint256 randomness = _randomValueFromVRFProof(proof);
+    uint256[] memory randomWords = new uint256[](numWords);
+    for (uint256 i = 0; i < numWords; ++i) {
+      randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
+    }
+    delete requestCommitments[requestId];
 
     // Call the consumer contract callback
     bytes memory data = abi.encodeWithSelector(
       ISamWitchRNGConsumer.fulfillRandomWords.selector,
       requestId,
-      randomWordsData
+      randomWords
     );
-    callSuccess = _callWithExactGas(gasAmount, fulfillAddress, data);
+    callSuccess = _callWithExactGas(callbackGasLimit, fulfillAddress, data);
     if (callSuccess) {
-      emit RandomWordsFulfilled(requestId, randomWordsData, oracle);
+      emit RandomWordsFulfilled(requestId, randomWords, oracle);
     } else {
       revert FulfillmentFailed(requestId);
     }
@@ -113,7 +130,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
    * @dev calls target address with exactly gasAmount gas and data as calldata
    * or reverts if at least gasAmount gas is not available.
    */
-  function _callWithExactGas(uint gasAmount, address target, bytes memory data) private returns (bool success) {
+  function _callWithExactGas(uint256 gasAmount, address target, bytes memory data) private returns (bool success) {
     // solhint-disable-next-line no-inline-assembly
     assembly ("memory-safe") {
       let g := gas()
@@ -141,6 +158,10 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
       success := call(gasAmount, target, 0, add(data, 0x20), mload(data), 0, 0)
     }
     return success;
+  }
+
+  function _randomValueFromVRFProof(uint256[4] memory _proof) private view returns (uint256 output) {
+    return uint256(keccak256(abi.encode(block.chainid, _proof[0], _proof[1])));
   }
 
   // solhint-disable-next-line no-empty-blocks

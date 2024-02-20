@@ -10,7 +10,7 @@ contract TestRNGConsumer is ISamWitchRNGConsumer, Ownable {
   error OnlySamWitchRNG();
 
   SamWitchRNG public samWitchRNG;
-  mapping(bytes32 requestId => uint[] randomWords) public allRandomWords;
+  mapping(bytes32 requestId => uint256[] randomWords) public allRandomWords;
   bool private shouldRevert;
 
   modifier onlySamWitchRNG() {
@@ -24,13 +24,15 @@ contract TestRNGConsumer is ISamWitchRNGConsumer, Ownable {
     samWitchRNG = _samWitchRNG;
   }
 
-  function requestRandomWords(uint numWords) external onlyOwner returns (bytes32 requestId) {
-    requestId = samWitchRNG.requestRandomWords(numWords);
+  function requestRandomWords(
+    uint256 numWords,
+    uint256 callbackGasLimit
+  ) external onlyOwner returns (bytes32 requestId) {
+    requestId = samWitchRNG.requestRandomWords(numWords, callbackGasLimit);
   }
 
   // Called by the RNG contract to fulfill a random number request
-  function fulfillRandomWords(bytes32 requestId, bytes calldata data) external onlySamWitchRNG {
-    uint[] memory randomWords = abi.decode(data, (uint[]));
+  function fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords) external onlySamWitchRNG {
     allRandomWords[requestId] = randomWords;
     if (shouldRevert) {
       revert ShouldRevertTrue();

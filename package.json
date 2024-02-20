@@ -36,7 +36,8 @@
     "squirrelly": "^9.0.0",
     "ts-node": ">=10.9.2",
     "typechain": "^8.3.2",
-    "typescript": "~5.3.3"
+    "typescript": "~5.3.3",
+    "vrf-ts-256": "^1.0.0"
   },
   "scripts": {
     "console": "npx hardhat console",

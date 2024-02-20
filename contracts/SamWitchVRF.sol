@@ -5,19 +5,19 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {VRF} from "./VRF.sol";
 
-import {ISamWitchRNGConsumer} from "./ISamWitchRNGConsumer.sol";
+import {ISamWitchVRFConsumer} from "./ISamWitchVRFConsumer.sol";
 
-/// @title SamWitchRNG - Random Number Generator
-/// @author Sam Witch (SamWitchRNG & Estfor Kingdom)
-/// @notice This contract listens for requests for RNG, and allows the oracle to fulfill random numbers
-contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
+/// @title SamWitchVRF - Verifiable Random Number
+/// @author Sam Witch (SamWitchVRF & Estfor Kingdom)
+/// @notice This contract listens for requests for VRF, and allows the oracle to fulfill random numbers
+contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
   event ConsumerRegistered(address consumer);
   event RandomWordsRequested(bytes32 requestId, address fulfillAddress, uint256 numWords, uint256 nonce);
   event RandomWordsFulfilled(bytes32 requestId, uint[] randomWords, address oracle);
 
   error FulfillmentFailed(bytes32 requestId);
   error InvalidConsumer(address consumer);
-  error InvalidSignature();
+  error InvalidProof();
   error InvalidPublicKey();
   error OnlyOracle();
   error CommitmentMismatch();
@@ -85,14 +85,13 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
       revert CommitmentMismatch();
     }
 
-    // Verify it was created by the oracle
-    bool verified = VRF.verify(publicKey, proof, bytes.concat(commitment));
-    if (!verified) {
-      revert InvalidSignature();
-    }
-
+    // Verify the public key & proof are correct
     if (VRF.pointToAddress(publicKey[0], publicKey[1]) != oracle) {
       revert InvalidPublicKey();
+    }
+    bool verified = VRF.verify(publicKey, proof, bytes.concat(commitment));
+    if (!verified) {
+      revert InvalidProof();
     }
 
     // Get random words out of the proof
@@ -105,7 +104,7 @@ contract SamWitchRNG is UUPSUpgradeable, OwnableUpgradeable {
 
     // Call the consumer contract callback
     bytes memory data = abi.encodeWithSelector(
-      ISamWitchRNGConsumer.fulfillRandomWords.selector,
+      ISamWitchVRFConsumer.fulfillRandomWords.selector,
       requestId,
       randomWords
     );

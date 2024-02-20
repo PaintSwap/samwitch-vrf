@@ -46,7 +46,7 @@ library EllipticCurve {
 
     uint256 r = 1;
     uint256 bit = U255_MAX_PLUS_1;
-    assembly {
+    assembly ("memory-safe") {
       for {
 
       } gt(bit, 0) {

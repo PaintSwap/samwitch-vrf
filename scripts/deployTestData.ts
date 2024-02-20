@@ -1,6 +1,6 @@
 import hre, {ethers} from "hardhat";
-import {SamWitchRNG} from "../typechain-types";
-import {swrngAddressBeta, swrngAddressLive, verifyContracts} from "./helpers";
+import {SamWitchVRF} from "../typechain-types";
+import {swvrfAddressBeta, swvrfAddressLive, verifyContracts} from "./helpers";
 import {networkConstants} from "../constants/network_constants";
 
 async function main() {
@@ -9,33 +9,33 @@ async function main() {
     `Deploying test data with the account: ${owner.address} on chain id: ${(await ethers.provider.getNetwork()).chainId}`,
   );
 
-  const swrngAddress = swrngAddressBeta;
-  const swrng = (await ethers.getContractAt("SamWitchRNG", swrngAddress)) as SamWitchRNG;
+  const swvrfAddress = swvrfAddressBeta;
+  const swvrf = (await ethers.getContractAt("SamWitchVRF", swvrfAddress)) as SamWitchVRF;
 
-  // swrng
-  let tx = await swrng.registerConsumer("0x40567ad9cd25c56422807ed67f0e66f1825bdb91");
+  // swvrf
+  let tx = await swvrf.registerConsumer("0x40567ad9cd25c56422807ed67f0e66f1825bdb91");
   await tx.wait();
 
-  tx = await swrng.registerConsumer("0xf31517db9f0987002f3a0fb4f787dfb9e892f184");
+  tx = await swvrf.registerConsumer("0xf31517db9f0987002f3a0fb4f787dfb9e892f184");
   await tx.wait();
 
-  const testRNGConsumer = await ethers.deployContract("TestRNGConsumer", [swrng]);
-  console.log("testRNGConsumer deployed to: ", await swrng.getAddress());
-  await testRNGConsumer.waitForDeployment();
-  tx = await swrng.registerConsumer(testRNGConsumer);
+  const testVRFConsumer = await ethers.deployContract("TestVRFConsumer", [swvrf]);
+  console.log("testVRFConsumer deployed to: ", await swvrf.getAddress());
+  await testVRFConsumer.waitForDeployment();
+  tx = await swvrf.registerConsumer(testVRFConsumer);
   await tx.wait();
 
   const callbackGasLimit = 1_000_000;
-  tx = await testRNGConsumer.requestRandomWords(2, callbackGasLimit);
+  tx = await testVRFConsumer.requestRandomWords(2, callbackGasLimit);
   await tx.wait();
   console.log("Request random");
 
   const {shouldVerify} = await networkConstants(hre);
   if (shouldVerify) {
     try {
-      const addresses: string[] = [await testRNGConsumer.getAddress()];
+      const addresses: string[] = [await testVRFConsumer.getAddress()];
       console.log("Verifying contracts...");
-      await verifyContracts(addresses, [[swrngAddress]]);
+      await verifyContracts(addresses, [[swvrfAddress]]);
     } catch (e) {
       console.log(e);
     }

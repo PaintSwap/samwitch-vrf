@@ -1,7 +1,7 @@
 import hre, {ethers, upgrades} from "hardhat";
 import {networkConstants} from "../constants/network_constants";
 import {verifyContracts} from "./helpers";
-import { SamWitchRNG } from "../typechain-types";
+import {SamWitchVRF} from "../typechain-types";
 
 // Deploy everything
 async function main() {
@@ -15,19 +15,19 @@ async function main() {
   const callerLive = "0x28ade840602d0363a2ab675479f1b590b23b0490";
   const caller = callerBeta;
 
-  // Deploy SamWitchRNG
-  const SamWitchRNG = await ethers.getContractFactory("SamWitchRNG");
-  const swrng = (await upgrades.deployProxy(SamWitchRNG, [caller], {
+  // Deploy SamWitchVRF
+  const SamWitchVRF = await ethers.getContractFactory("SamWitchVRF");
+  const swvrf = (await upgrades.deployProxy(SamWitchVRF, [caller], {
     kind: "uups",
     timeout: 600 * 1000, // 10 minutes
-  })) as unknown as SamWitchRNG;
-  await swrng.waitForDeployment();
-  console.log("Deployed SamWitchRNG to:", await swrng.getAddress());
+  })) as unknown as SamWitchVRF;
+  await swvrf.waitForDeployment();
+  console.log("Deployed SamWitchVRF to:", await swvrf.getAddress());
 
   const {shouldVerify} = await networkConstants(hre);
   if (shouldVerify) {
     try {
-      const addresses: string[] = [await swrng.getAddress()];
+      const addresses: string[] = [await swvrf.getAddress()];
       console.log("Verifying contracts...");
       await verifyContracts(addresses);
     } catch (e) {

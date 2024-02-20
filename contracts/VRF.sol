@@ -145,7 +145,7 @@ library VRF {
     uint256 gammaX;
     uint128 c;
     uint256 s;
-    assembly {
+    assembly ("memory-safe") {
       gammaSign := mload(add(_proof, 1))
       gammaX := mload(add(_proof, 33))
       c := mload(add(_proof, 49))
@@ -163,7 +163,7 @@ library VRF {
     require(_point.length == 33, "Malformed compressed EC point");
     uint8 sign;
     uint256 x;
-    assembly {
+    assembly ("memory-safe") {
       sign := mload(add(_point, 1))
       x := mload(add(_point, 33))
     }
@@ -267,7 +267,7 @@ library VRF {
     // Hash bytes and truncate
     bytes32 sha = sha256(c);
     bytes16 half1;
-    assembly {
+    assembly ("memory-safe") {
       let freemem_pointer := mload(0x40)
       mstore(add(freemem_pointer, 0x00), sha)
       half1 := mload(add(freemem_pointer, 0x00))

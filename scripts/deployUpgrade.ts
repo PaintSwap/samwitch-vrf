@@ -1,9 +1,9 @@
 import hre, {ethers, upgrades} from "hardhat";
-import {swrngAddressBeta, swrngAddressLive, verifyContracts} from "./helpers";
-import {SamWitchRNG} from "../typechain-types";
+import {swvrfAddressBeta, swvrfAddressLive, verifyContracts} from "./helpers";
+import {SamWitchVRF} from "../typechain-types";
 import {networkConstants} from "../constants/network_constants";
 
-// Upgrade rng
+// Upgrade vrf
 async function main() {
   const [owner] = await ethers.getSigners();
   console.log(
@@ -12,19 +12,19 @@ async function main() {
 
   const timeout = 600 * 1000; // 10 minutes
 
-  const swrngAddress = swrngAddressBeta;
+  const swvrfAddress = swvrfAddressBeta;
 
-  const SamWitchRNG = await ethers.getContractFactory("SamWitchRNG");
-  const swrng = (await upgrades.upgradeProxy(swrngAddress, SamWitchRNG, {
+  const SamWitchVRF = await ethers.getContractFactory("SamWitchVRF");
+  const swvrf = (await upgrades.upgradeProxy(swvrfAddress, SamWitchVRF, {
     kind: "uups",
     timeout,
-  })) as unknown as SamWitchRNG;
-  await swrng.waitForDeployment();
+  })) as unknown as SamWitchVRF;
+  await swvrf.waitForDeployment();
 
   const {shouldVerify} = await networkConstants(hre);
   if (shouldVerify) {
     try {
-      const addresses: string[] = [await swrng.getAddress()];
+      const addresses: string[] = [await swvrf.getAddress()];
       console.log("Verifying contracts...");
       await verifyContracts(addresses);
     } catch (e) {

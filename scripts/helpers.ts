@@ -12,5 +12,5 @@ export const verifyContracts = async (addresses: string[], args: any[][] = []) =
   console.log("Verified all contracts");
 };
 
-export const swrngAddressBeta = "0x24D52295343FdB90E32814869109976c1dc05D0C";
-export const swrngAddressLive = "";
+export const swvrfAddressBeta = "0x24D52295343FdB90E32814869109976c1dc05D0C";
+export const swvrfAddressLive = "";

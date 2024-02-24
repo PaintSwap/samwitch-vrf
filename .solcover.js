@@ -21,5 +21,5 @@ module.exports = {
         "jml[jl] VTOl jml : fDnTO",
     },
   },
-  skipFiles: ["test/TestVRFConsumer.sol", "VRF.sol", "EllipticCurve.sol"],
+  skipFiles: ["test/", "VRF.sol", "EllipticCurve.sol"],
 };

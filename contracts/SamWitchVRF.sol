@@ -3,31 +3,16 @@ pragma solidity ^0.8.24;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {VRF} from "./VRF.sol";
+import {VRF} from "./libraries/VRF.sol";
 
-import {ISamWitchVRFConsumer} from "./ISamWitchVRFConsumer.sol";
+import {ISamWitchVRFConsumer} from "./interfaces/ISamWitchVRFConsumer.sol";
+
+import {ISamWitchVRF} from "./interfaces/ISamWitchVRF.sol";
 
 /// @title SamWitchVRF - Verifiable Random Number
 /// @author Sam Witch (SamWitchVRF & Estfor Kingdom)
 /// @notice This contract listens for requests for VRF, and allows the oracle to fulfill random numbers
-contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
-  event ConsumerRegistered(address consumer);
-  event RandomWordsRequested(
-    bytes32 requestId,
-    uint256 callbackGasLimit,
-    uint256 numWords,
-    address consumer,
-    uint64 nonce
-  );
-  event RandomWordsFulfilled(bytes32 requestId, uint[] randomWords, address oracle);
-
-  error FulfillmentFailed(bytes32 requestId);
-  error InvalidConsumer(address consumer);
-  error InvalidProof();
-  error InvalidPublicKey();
-  error OnlyOracle();
-  error CommitmentMismatch();
-
+contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   mapping(address consumer => uint64 nonce) public consumers;
   mapping(address oracles => bool isOracle) public oracles;
   mapping(bytes32 requestId => bytes32 commitment) private requestCommitments;
@@ -52,8 +37,11 @@ contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
   /// all of its parameters as arguments
   /// @param numWords Number of random words to request
   /// @return requestId Request ID
-  function requestRandomWords(uint256 numWords, uint256 callbackGasLimit) external returns (bytes32 requestId) {
     uint64 currentNonce = consumers[_msgSender()];
+  function requestRandomWords(
+    uint256 numWords,
+    uint256 callbackGasLimit
+  ) external override returns (bytes32 requestId) {
     if (currentNonce == 0) {
       revert InvalidConsumer(_msgSender());
     }
@@ -81,7 +69,7 @@ contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
     uint256 numWords,
     uint256[2] memory publicKey,
     uint256[4] memory proof
-  ) external returns (bool callSuccess) {
+  ) external override returns (bool callSuccess) {
     if (!oracles[oracle]) {
       revert OnlyOracle();
     }

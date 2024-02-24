@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {ISamWitchVRFConsumer} from "../ISamWitchVRFConsumer.sol";
+import {ISamWitchVRFConsumer} from "../interfaces/ISamWitchVRFConsumer.sol";
 import {SamWitchVRF} from "../SamWitchVRF.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {ISamWitchVRFConsumer} from "../interfaces/ISamWitchVRFConsumer.sol";
-import {SamWitchVRF} from "../SamWitchVRF.sol";
+import {ISamWitchVRF} from "../interfaces/ISamWitchVRF.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TestVRFConsumer is ISamWitchVRFConsumer, Ownable {
   error ShouldRevertTrue();
   error OnlySamWitchVRF();
 
-  SamWitchVRF public samWitchVRF;
+  ISamWitchVRF public samWitchVRF;
   mapping(bytes32 requestId => uint256[] randomWords) public allRandomWords;
   bool private shouldRevert;
 
@@ -20,7 +20,7 @@ contract TestVRFConsumer is ISamWitchVRFConsumer, Ownable {
     _;
   }
 
-  constructor(SamWitchVRF _samWitchVRF) Ownable(msg.sender) {
+  constructor(ISamWitchVRF _samWitchVRF) Ownable(msg.sender) {
     samWitchVRF = _samWitchVRF;
   }
 

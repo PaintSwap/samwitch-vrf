@@ -1,9 +1,12 @@
 {
-  "name": "samwitch-vrf",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "@samwitch/vrf",
+  "version": "0.0.1",
   "author": "0xSamWitch <julian.assange12@outlook.com>",
+  "contributors": [
+    "0xDoubleSharp"
+  ],
   "license": "MIT",
+  "types": "typechain-types/contracts/index.ts",
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
     "@nomicfoundation/hardhat-ethers": "^3.0.5",
@@ -57,6 +60,7 @@
     "abi": "npx hardhat export-abi",
     "prettier": "npx prettier --write contracts/**/*.sol",
     "precommit": "npx pretty-quick --staged",
-    "prepare": "npx husky install .husky"
+    "prepare": "npx husky .husky",
+    "prepublish": "npx hardhat typechain"
   }
 }

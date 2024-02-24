@@ -32,7 +32,7 @@ contract TestVRFConsumer is ISamWitchVRFConsumer, Ownable {
   }
 
   // Called by the VRF contract to fulfill a random number request
-  function fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords) external onlySamWitchVRF {
+  function fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords) external override onlySamWitchVRF {
     allRandomWords[requestId] = randomWords;
     if (shouldRevert) {
       revert ShouldRevertTrue();

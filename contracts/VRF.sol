@@ -216,10 +216,10 @@ library VRF {
 
     // Step 3: find a valid EC point
     // Loop over counter ctr starting at 0x00 and do hash
-    for (uint8 ctr = 0; ctr < 256; ctr++) {
+    for (uint256 ctr = 0; ctr < 256; ctr++) {
       // Counter update
       // c[cLength-1] = byte(ctr);
-      bytes32 sha = sha256(abi.encodePacked(c, ctr));
+      bytes32 sha = sha256(abi.encodePacked(c, uint8(ctr)));
       // Step 4: arbitrary string to point and check if it is on curve
       uint hPointX = uint256(sha);
       uint hPointY = deriveY(2, hPointX);

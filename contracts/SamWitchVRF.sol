@@ -37,24 +37,25 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   /// all of its parameters as arguments
   /// @param numWords Number of random words to request
   /// @return requestId Request ID
-    uint64 currentNonce = consumers[_msgSender()];
   function requestRandomWords(
     uint256 numWords,
     uint256 callbackGasLimit
   ) external override returns (bytes32 requestId) {
+    address consumer = _msgSender();
+    uint64 currentNonce = consumers[consumer];
     if (currentNonce == 0) {
-      revert InvalidConsumer(_msgSender());
+      revert InvalidConsumer(consumer);
     }
 
     uint64 nonce = ++currentNonce;
-    consumers[_msgSender()] = currentNonce;
-    requestId = _computeRequestId(_msgSender(), nonce);
+    consumers[consumer] = currentNonce;
+    requestId = _computeRequestId(consumer, nonce);
 
     requestCommitments[requestId] = keccak256(
-      abi.encode(requestId, callbackGasLimit, numWords, _msgSender(), block.chainid)
+      abi.encode(requestId, callbackGasLimit, numWords, consumer, block.chainid)
     );
 
-    emit RandomWordsRequested(requestId, callbackGasLimit, numWords, _msgSender(), nonce);
+    emit RandomWordsRequested(requestId, callbackGasLimit, numWords, consumer, nonce);
   }
 
   /// @notice Fulfill the request

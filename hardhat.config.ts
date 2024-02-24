@@ -41,6 +41,7 @@ const config: HardhatUserConfig = {
     maxMethodDiff: 1,
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     gasPriceApi: "https://api.ftmscan.com/api?module=proxy&action=eth_gasPrice",
+    excludeContracts: ["contracts/test/"],
   },
   contractSizer: {
     alphaSort: true,

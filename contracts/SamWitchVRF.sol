@@ -95,8 +95,7 @@ contract SamWitchVRF is UUPSUpgradeable, OwnableUpgradeable {
     if (VRF.pointToAddress(publicKey[0], publicKey[1]) != oracle) {
       revert InvalidPublicKey();
     }
-    bool verified = VRF.verify(publicKey, proof, bytes.concat(commitment));
-    if (!verified) {
+    if (!VRF.verify(publicKey, proof, bytes.concat(commitment))) {
       revert InvalidProof();
     }
 

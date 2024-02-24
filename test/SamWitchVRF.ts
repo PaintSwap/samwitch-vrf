@@ -2,6 +2,7 @@ import {loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {ethers, upgrades} from "hardhat";
 import {expect} from "chai";
 import {SamWitchVRF, TestVRFConsumer} from "../typechain-types";
+import {BigNumberish} from "ethers";
 
 const elliptic = require("elliptic");
 const ecvrf = require("vrf-ts-256");
@@ -33,7 +34,7 @@ describe("SamWitchVRF", function () {
     };
   }
 
-  it("Simple fullment", async function () {
+  it("Simple fulfillment", async function () {
     const {samWitchVRF, vrfConsumer, bob, bobsPrivateKey} = await loadFixture(deployContractsFixture);
 
     await samWitchVRF.registerConsumer(vrfConsumer);
@@ -42,10 +43,10 @@ describe("SamWitchVRF", function () {
     const numWords = 1;
     const callbackGasLimit = 3_000_000;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
+    let receipt = (await tx.wait()) || {logs: []};
 
-    let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -65,9 +66,9 @@ describe("SamWitchVRF", function () {
       publicKey,
       proof,
     );
-    receipt = await tx.wait();
+    receipt = (await tx.wait()) || {logs: []};
 
-    log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
+    log = samWitchVRF.interface.parseLog(receipt.logs[0]);
     expect(log?.name).to.eq("RandomWordsFulfilled");
   });
 
@@ -87,10 +88,10 @@ describe("SamWitchVRF", function () {
     const numWords = 1;
     const callbackGasLimit = 1_000_000;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
+    let receipt = (await tx.wait()) || {logs: []};
 
-    let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -110,8 +111,8 @@ describe("SamWitchVRF", function () {
       publicKey,
       proof,
     );
-    receipt = await tx.wait();
-    log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
+    receipt = (await tx.wait()) || {logs: []};
+    log = samWitchVRF.interface.parseLog(receipt.logs[0]);
 
     // Cannot fulfill again
     await expect(
@@ -119,7 +120,7 @@ describe("SamWitchVRF", function () {
     ).to.be.revertedWithCustomError(samWitchVRF, "CommitmentMismatch");
   });
 
-  it("Anyone can call fulfill as long as the signature is signed by the oracle", async function () {
+  it("Anyone can call fulfil as long as the signature is signed by the oracle", async function () {
     const {samWitchVRF, vrfConsumer, alice, bob, alicesPrivateKey, bobsPrivateKey} =
       await loadFixture(deployContractsFixture);
 
@@ -128,10 +129,10 @@ describe("SamWitchVRF", function () {
     const numWords = 1;
     const callbackGasLimit = 1_000_000;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
+    let receipt = (await tx.wait()) || {logs: []};
 
-    let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -166,7 +167,7 @@ describe("SamWitchVRF", function () {
     ).to.not.be.reverted;
   });
 
-  it("Must pass a real oracle to fulfil ", async function () {
+  it("Must pass a real oracle to fulfil", async function () {
     const {samWitchVRF, vrfConsumer, alice, bobsPrivateKey} = await loadFixture(deployContractsFixture);
 
     await samWitchVRF.registerConsumer(vrfConsumer);
@@ -174,10 +175,11 @@ describe("SamWitchVRF", function () {
     const numWords = 1;
     const callbackGasLimit = 1_000_000;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
 
-    let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    let receipt = (await tx.wait()) || {logs: []};
+
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -202,10 +204,10 @@ describe("SamWitchVRF", function () {
     const numWords = 1;
     const callbackGasLimit = 1;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
+    let receipt = (await tx.wait()) || {logs: []};
 
-    let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -227,13 +229,13 @@ describe("SamWitchVRF", function () {
     await samWitchVRF.registerConsumer(vrfConsumer);
 
     // Request 1 random word
-    const numWords = 1;
-    const callbackGasLimit = 1_000_000;
+    const numWords = 1n;
+    const callbackGasLimit = 1_000_000n;
     let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
-    let receipt = await tx.wait();
+    let receipt = (await tx.wait()) || {logs: []};
 
     let log = samWitchVRF.interface.parseLog(receipt?.logs[0]);
-    const requestId = log.args[0];
+    const requestId = log?.args[0];
 
     const {chainId} = await ethers.provider.getNetwork();
     const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
@@ -297,11 +299,11 @@ const getProof = (privateKey: string, message: string) => {
     "0x" + rawProof.decoded.gammaY.toString("hex"),
     "0x" + rawProof.decoded.c.toString("hex"),
     "0x" + rawProof.decoded.s.toString("hex"),
-  ];
+  ] as [BigNumberish, BigNumberish, BigNumberish, BigNumberish];
 };
 
 const getPublicKey = (privateKey: string) => {
   const EC = new elliptic.ec("secp256k1");
   const public_key = EC.keyFromPrivate(privateKey).getPublic();
-  return ["0x" + public_key.x.toString("hex"), "0x" + public_key.y.toString("hex")];
+  return ["0x" + public_key.x.toString("hex"), "0x" + public_key.y.toString("hex")] as [BigNumberish, BigNumberish];
 };

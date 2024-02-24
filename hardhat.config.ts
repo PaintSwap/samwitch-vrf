@@ -35,8 +35,10 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: process.env.GAS_REPORTER != "false",
-    token: "FTM",
-    currency: "USD",
+    currency: process.env.GAS_CURRENCY || "USD",
+    token: process.env.GAS_TOKEN || "FTM",
+    maxMethodDiff: 1,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     gasPriceApi: "https://api.ftmscan.com/api?module=proxy&action=eth_gasPrice",
   },
   contractSizer: {

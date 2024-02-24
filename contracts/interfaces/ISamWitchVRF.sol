@@ -8,7 +8,7 @@ interface ISamWitchVRF {
     uint256 callbackGasLimit,
     uint256 numWords,
     address consumer,
-    uint64 nonce
+    uint256 nonce
   );
   event RandomWordsFulfilled(bytes32 requestId, uint[] randomWords, address oracle);
 

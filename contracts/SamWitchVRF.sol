@@ -13,7 +13,7 @@ import {ISamWitchVRF} from "./interfaces/ISamWitchVRF.sol";
 /// @author Sam Witch (SamWitchVRF & Estfor Kingdom)
 /// @notice This contract listens for requests for VRF, and allows the oracle to fulfill random numbers
 contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
-  mapping(address consumer => uint64 nonce) public consumers;
+  mapping(address consumer => uint256 nonce) public consumers;
   mapping(address oracles => bool isOracle) public oracles;
   mapping(bytes32 requestId => bytes32 commitment) private requestCommitments;
 
@@ -42,13 +42,16 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     uint256 callbackGasLimit
   ) external override returns (bytes32 requestId) {
     address consumer = _msgSender();
-    uint64 currentNonce = consumers[consumer];
-    if (currentNonce == 0) {
+    uint256 nonce = consumers[consumer];
+    if (nonce == 0) {
       revert InvalidConsumer(consumer);
     }
 
-    uint64 nonce = ++currentNonce;
-    consumers[consumer] = currentNonce;
+    unchecked {
+      nonce += 1;
+    }
+
+    consumers[consumer] = nonce;
     requestId = _computeRequestId(consumer, nonce);
 
     requestCommitments[requestId] = keccak256(
@@ -115,7 +118,7 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     emit ConsumerRegistered(_consumer);
   }
 
-  function _computeRequestId(address sender, uint64 nonce) private pure returns (bytes32) {
+  function _computeRequestId(address sender, uint256 nonce) private pure returns (bytes32) {
     return keccak256(abi.encodePacked(sender, nonce));
   }
 

@@ -13,12 +13,19 @@ library EllipticCurve {
   uint256 private constant U255_MAX_PLUS_1 =
     57896044618658097711785492504343953926634992332820282019728792003956564819968;
 
+  error InvalidNumber(uint256 _x, uint256 _pp);
+  error ModulusIsZero();
+  error InvalidCompressedECPointPrefix(uint8 _prefix);
+  error UseJacDoubleFunctionInstead();
+
   /// @dev Modular euclidean inverse of a number (mod p).
   /// @param _x The number
   /// @param _pp The modulus
   /// @return q such that x*q = 1 (mod _pp)
   function invMod(uint256 _x, uint256 _pp) internal pure returns (uint256) {
-    require(_x != 0 && _x != _pp && _pp != 0, "Invalid number");
+    if (_x == 0 || _x == _pp || _pp == 0) {
+      revert InvalidNumber(_x, _pp);
+    }
     uint256 q = 0;
     uint256 newT = 1;
     uint256 r = _pp;
@@ -39,7 +46,9 @@ library EllipticCurve {
   /// @param _pp modulus
   /// @return r such that r = b**e (mod _pp)
   function expMod(uint256 _base, uint256 _exp, uint256 _pp) internal pure returns (uint256) {
-    require(_pp != 0, "EllipticCurve: modulus is zero");
+    if (_pp == 0) {
+      revert ModulusIsZero();
+    }
 
     if (_base == 0) return 0;
     if (_exp == 0) return 1;
@@ -86,7 +95,9 @@ library EllipticCurve {
   /// @param _pp the modulus
   /// @return y coordinate y
   function deriveY(uint8 _prefix, uint256 _x, uint256 _aa, uint256 _bb, uint256 _pp) internal pure returns (uint256) {
-    require(_prefix == 0x02 || _prefix == 0x03, "EllipticCurve:innvalid compressed EC point prefix");
+    if (_prefix != 0x02 && _prefix != 0x03) {
+      revert InvalidCompressedECPointPrefix(_prefix);
+    }
 
     // x^3 + ax + b
     uint256 y2 = addmod(mulmod(_x, mulmod(_x, _x, _pp), _pp), addmod(mulmod(_x, _aa, _pp), _bb, _pp), _pp);
@@ -243,7 +254,9 @@ library EllipticCurve {
     zs = [mulmod(_x1, zs[2], _pp), mulmod(_y1, zs[3], _pp), mulmod(_x2, zs[0], _pp), mulmod(_y2, zs[1], _pp)];
 
     // In case of zs[0] == zs[2] && zs[1] == zs[3], double function should be used
-    require(zs[0] != zs[2] || zs[1] != zs[3], "Use jacDouble function instead");
+    if (zs[0] == zs[2] && zs[1] == zs[3]) {
+      revert UseJacDoubleFunctionInstead();
+    }
 
     uint[4] memory hr;
     //h

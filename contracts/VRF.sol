@@ -28,6 +28,10 @@ library VRF {
   // Order of the curve
   uint256 public constant NN = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
+  error MalformedVRFProof();
+  error MalformedCompressedECPoint();
+  error NoValidPointFound();
+
   /// @dev Public key derivation from private key.
   /// Warning: this function should not be used to derive your public key as it would expose the private key.
   /// @param _d The scalar
@@ -140,7 +144,9 @@ library VRF {
   /// @param _proof The VRF proof as bytes
   /// @return The VRF proof as an array composed of `[gamma-x, gamma-y, c, s]`
   function decodeProof(bytes memory _proof) internal pure returns (uint[4] memory) {
-    require(_proof.length == 81, "Malformed VRF proof");
+    if (_proof.length != 81) {
+      revert MalformedVRFProof();
+    }
     uint8 gammaSign;
     uint256 gammaX;
     uint128 c;
@@ -160,7 +166,9 @@ library VRF {
   /// @param _point The EC point as bytes
   /// @return The point as `[point-x, point-y]`
   function decodePoint(bytes memory _point) internal pure returns (uint[2] memory) {
-    require(_point.length == 33, "Malformed compressed EC point");
+    if (_point.length != 33) {
+      revert MalformedCompressedECPoint();
+    }
     uint8 sign;
     uint256 x;
     assembly ("memory-safe") {
@@ -229,7 +237,7 @@ library VRF {
         return (hPointX, hPointY);
       }
     }
-    revert("No valid point was found");
+    revert NoValidPointFound();
   }
 
   /// @dev Function to hash a certain set of points as specified in [VRF-draft-04](https://tools.ietf.org/pdf/draft-irtf-cfrg-vrf-04).

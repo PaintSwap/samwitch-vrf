@@ -220,7 +220,7 @@ library VRF {
       // Counter update
       // c[cLength-1] = byte(ctr);
       bytes32 sha = sha256(abi.encodePacked(c, ctr));
-      // Step 4: arbitraty string to point and check if it is on curve
+      // Step 4: arbitrary string to point and check if it is on curve
       uint hPointX = uint256(sha);
       uint hPointY = deriveY(2, hPointX);
       if (EllipticCurve.isOnCurve(hPointX, hPointY, AA, BB, PP)) {

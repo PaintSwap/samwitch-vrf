@@ -28,7 +28,7 @@ yarn add -D @samwitch/vrf
 
 ### Include in Solidity Contracts
 
-To request a random number in your contract you must implement `ISamWitchVRFConsumer.fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords)` to recieve the response to your request. The service can be called using the `ISamWitchVRF` interface, and ensuring
+To request a random number in your contract you must implement `ISamWitchVRFConsumer.fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords)` to receive the response to your request. The service can be called using the `ISamWitchVRF` interface, and ensuring
 that the results are only provided by the randomness service contract.
 
 ```ts

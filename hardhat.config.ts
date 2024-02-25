@@ -21,7 +21,7 @@ const defaultConfig: SolcUserConfig = {
         yul: true,
       },
     },
-    viaIR: process.env.HARDHAT_VIAIR != "false", // This cannot be used with coverage for instance
+    viaIR: process.env.HARDHAT_VIAIR != "false",
     outputSelection: {
       "*": {
         "*": ["storageLayout"],

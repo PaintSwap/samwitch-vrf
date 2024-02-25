@@ -2,6 +2,12 @@
 
 [![Continuous integration](https://github.com/PaintSwap/samwitch-vrf/actions/workflows/main.yml/badge.svg)](https://github.com/PaintSwap/samwitch-vrf/actions/workflows/main.yml)
 
+![overall](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/doublesharp/8264fd8eb852ea096bf7ee56a7ab695a/raw/samwitch-vrf-overall.json)
+![statements](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/doublesharp/8264fd8eb852ea096bf7ee56a7ab695a/raw/samwitch-vrf-statements.json)
+![branches](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/doublesharp/8264fd8eb852ea096bf7ee56a7ab695a/raw/samwitch-vrf-branches.json)
+![functions](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/doublesharp/8264fd8eb852ea096bf7ee56a7ab695a/raw/samwitch-vrf-functions.json)
+![lines](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/doublesharp/8264fd8eb852ea096bf7ee56a7ab695a/raw/samwitch-vrf-lines.json)
+
 ![swvrf](https://github.com/PaintSwap/samwitch-vrf/assets/84033732/4caebec8-7e8d-4416-9f59-91e827ecbdd3)
 
 This is a Verifiable Random Function smart contract handler, which requests random numbers from an oracle, and has a callback called once the random numbers are ready. There are no costs in requesting a number, but there needs to be enough native gas (FTM) on the oracle signer to be able to call the callbacks.
@@ -22,7 +28,7 @@ yarn add -D @samwitch/vrf
 
 ### Include in Solidity Contracts
 
-To request a random number in your contract you must implement `ISamWitchVRFConsumer.fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords)` to recieve the response to your request. The service can be called using the `ISamWitchVRF` interface, and ensuring
+To request a random number in your contract you must implement `ISamWitchVRFConsumer.fulfillRandomWords(bytes32 requestId, uint256[] calldata randomWords)` to receive the response to your request. The service can be called using the `ISamWitchVRF` interface, and ensuring
 that the results are only provided by the randomness service contract.
 
 ```ts

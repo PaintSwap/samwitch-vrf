@@ -55,7 +55,6 @@ jobs:
 
       - run: yarn
       - run: |
-          COVERAGE_PROJECT="samwitch-vrf"
           COVERAGE_REPORT=$(GAS_REPORTER=false yarn coverage)
 
           COVERAGE_STMTS="$(echo "$COVERAGE_REPORT" | grep "All files" | cut -f 2 -d'|' | xargs)"
@@ -92,7 +91,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 8264fd8eb852ea096bf7ee56a7ab695a
-          filename: ${{ env.COVERAGE_PROJECT}}-overall.json
+          filename: samwitch-vrf-overall.json
           label: Coverage
           message: ${{ env.COVERAGE_OVERALL }}
           color: ${{ env.COLOR_OVERALL }}
@@ -102,7 +101,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 8264fd8eb852ea096bf7ee56a7ab695a
-          filename: ${{ env.COVERAGE_PROJECT}}-statements.json
+          filename: samwitch-vrf-statements.json
           label: Covered Statements
           message: ${{ env.COVERAGE_STMTS }}
           color: ${{ env.COLOR_STMTS }}
@@ -112,7 +111,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 8264fd8eb852ea096bf7ee56a7ab695a
-          filename: ${{ env.COVERAGE_PROJECT}}-branches.json
+          filename: samwitch-vrf-branches.json
           label: Covered Branches
           message: ${{ env.COVERAGE_BRANCH }}
           color: ${{ env.COLOR_BRANCH }}
@@ -122,7 +121,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 8264fd8eb852ea096bf7ee56a7ab695a
-          filename: ${{ env.COVERAGE_PROJECT}}-functions.json
+          filename: samwitch-vrf-functions.json
           label: Covered Functions
           message: ${{ env.COVERAGE_FUNCS }}
           color: ${{ env.COLOR_FUNCS }}
@@ -132,7 +131,7 @@ jobs:
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 8264fd8eb852ea096bf7ee56a7ab695a
-          filename: ${{ env.COVERAGE_PROJECT}}-lines.json
+          filename: samwitch-vrf-lines.json
           label: Covered Lines
           message: ${{ env.COVERAGE_LINES }}
           color: ${{ env.COLOR_LINES }}

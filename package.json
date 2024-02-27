@@ -48,7 +48,7 @@
     "pretty-quick": "^4.0.0",
     "solhint": "^4.1.1",
     "solhint-plugin-prettier": "^0.1.0",
-    "solidity-coverage": "0.8.6",
+    "solidity-coverage": "^0.8.9",
     "squirrelly": "^9.0.0",
     "ts-node": ">=10.9.2",
     "typechain": "^8.3.2",

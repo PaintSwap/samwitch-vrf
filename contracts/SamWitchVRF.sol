@@ -27,10 +27,10 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   }
 
   /// @notice Initialize the contract as part of the proxy contract deployment
-  function initialize(address _oracle) external payable initializer {
+  function initialize(address oracle) external payable initializer {
     __UUPSUpgradeable_init();
     __Ownable_init(_msgSender());
-    oracles[_oracle] = true;
+    oracles[oracle] = true;
   }
 
   /// @notice Called by the requester to make a full request, which provides
@@ -63,7 +63,13 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
 
   /// @notice Fulfill the request
   /// @param requestId Request ID
-  /// @param fulfillAddress Address that will be called to fulfill
+  /// @param fulfillAddress The address to fulfill the request
+  /// @param callbackGasLimit The amount of gas to provide the consumer
+  /// @param numWords The number of words to fulfill
+  /// @param publicKey The public key of the oracle
+  /// @param proof The proof of the random words
+  /// @param uPoint The `u` EC point defined as `U = s*B - c*Y`
+  /// @param vComponents The components required to compute `v` as `V = s*H - c*Gamma`
   /// @return callSuccess If the fulfillment call succeeded
   function fulfillRandomWords(
     bytes32 requestId,
@@ -72,7 +78,9 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     uint256 callbackGasLimit,
     uint256 numWords,
     uint256[2] memory publicKey,
-    uint256[4] memory proof
+    uint256[4] memory proof,
+    uint256[2] memory uPoint,
+    uint256[4] memory vComponents
   ) external override returns (bool callSuccess) {
     if (!oracles[oracle]) {
       revert OnlyOracle();
@@ -87,7 +95,7 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     if (VRF.pointToAddress(publicKey[0], publicKey[1]) != oracle) {
       revert InvalidPublicKey();
     }
-    if (!VRF.verify(publicKey, proof, bytes.concat(commitment))) {
+    if (!VRF.fastVerify(publicKey, proof, bytes.concat(commitment), uPoint, vComponents)) {
       revert InvalidProof();
     }
 
@@ -113,19 +121,32 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     }
   }
 
-  function registerConsumer(address _consumer) external onlyOwner {
-    consumers[_consumer] = 1;
-    emit ConsumerRegistered(_consumer);
+  /// @dev Compute the parameters (EC points) required for the VRF fast verification function.
+  /// @param publicKey The public key as an array composed of `[pubKey-x, pubKey-y]`
+  /// @param proof The VRF proof as an array composed of `[gamma-x, gamma-y, c, s]`
+  /// @param message The message (in bytes) used for computing the VRF
+  /// @return The fast verify required parameters as the tuple `([uPointX, uPointY], [sHX, sHY, cGammaX, cGammaY])`
+  function computeFastVerifyParams(
+    uint256[2] memory publicKey,
+    uint256[4] memory proof,
+    bytes memory message
+  ) external pure returns (uint256[2] memory, uint256[4] memory) {
+    return VRF.computeFastVerifyParams(publicKey, proof, message);
+  }
+
+  /// @notice Register a consumer to be able to request random words
+  ///@param consumer An address which is allowed to request random words
+  function registerConsumer(address consumer) external onlyOwner {
+    consumers[consumer] = 1;
+    emit ConsumerRegistered(consumer);
   }
 
   function _computeRequestId(address sender, uint256 nonce) private pure returns (bytes32) {
     return keccak256(abi.encodePacked(sender, nonce));
   }
 
-  /**
-   * @dev calls target address with exactly gasAmount gas and data as calldata
-   * or reverts if at least gasAmount gas is not available.
-   */
+  /// @dev calls target address with exactly gasAmount gas and data as calldata
+  /// or reverts if at least gasAmount gas is not available.
   function _callWithExactGas(uint256 gasAmount, address target, bytes memory data) private returns (bool success) {
     // solhint-disable-next-line no-inline-assembly
     assembly ("memory-safe") {

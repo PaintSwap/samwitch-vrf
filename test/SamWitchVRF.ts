@@ -57,6 +57,7 @@ describe("SamWitchVRF", function () {
     const publicKey = getPublicKey(bobsPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
 
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
     tx = await samWitchVRF.fulfillRandomWords(
       requestId,
       bob,
@@ -65,6 +66,8 @@ describe("SamWitchVRF", function () {
       numWords,
       publicKey,
       proof,
+      [...fastVerfifyParams[0]],
+      [...fastVerfifyParams[1]],
     );
     receipt = (await tx.wait()) || {logs: []};
 
@@ -101,7 +104,7 @@ describe("SamWitchVRF", function () {
     const message = ethers.keccak256(encodedParams);
     const publicKey = getPublicKey(bobsPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
-
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
     tx = await samWitchVRF.fulfillRandomWords(
       requestId,
       bob,
@@ -110,13 +113,25 @@ describe("SamWitchVRF", function () {
       numWords,
       publicKey,
       proof,
+      [...fastVerfifyParams[0]],
+      [...fastVerfifyParams[1]],
     );
     receipt = (await tx.wait()) || {logs: []};
     log = samWitchVRF.interface.parseLog(receipt.logs[0]);
 
     // Cannot fulfill again
     await expect(
-      samWitchVRF.fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKey, proof),
+      samWitchVRF.fulfillRandomWords(
+        requestId,
+        bob,
+        vrfConsumer,
+        callbackGasLimit,
+        numWords,
+        publicKey,
+        proof,
+        [...fastVerfifyParams[0]],
+        [...fastVerfifyParams[1]],
+      ),
     ).to.be.revertedWithCustomError(samWitchVRF, "CommitmentMismatch");
   });
 
@@ -144,26 +159,115 @@ describe("SamWitchVRF", function () {
     // Sign the hash
     const publicKeyWrongSigner = getPublicKey(alicesPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
-
+    let fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKeyWrongSigner, proof, message);
     await expect(
       samWitchVRF
         .connect(alice)
-        .fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKeyWrongSigner, proof),
+        .fulfillRandomWords(
+          requestId,
+          bob,
+          vrfConsumer,
+          callbackGasLimit,
+          numWords,
+          publicKeyWrongSigner,
+          proof,
+          [...fastVerfifyParams[0]],
+          [...fastVerfifyParams[1]],
+        ),
     ).to.be.revertedWithCustomError(samWitchVRF, "InvalidPublicKey");
 
     const publicKey = getPublicKey(bobsPrivateKey);
     const proofWrongSigner = getProof(alicesPrivateKey, message);
+    fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
 
     await expect(
       samWitchVRF
         .connect(alice)
-        .fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKey, proofWrongSigner),
+        .fulfillRandomWords(
+          requestId,
+          bob,
+          vrfConsumer,
+          callbackGasLimit,
+          numWords,
+          publicKey,
+          proofWrongSigner,
+          [...fastVerfifyParams[0]],
+          [...fastVerfifyParams[1]],
+        ),
     ).to.be.revertedWithCustomError(samWitchVRF, "InvalidProof");
 
     await expect(
       samWitchVRF
         .connect(alice)
-        .fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKey, proof),
+        .fulfillRandomWords(
+          requestId,
+          bob,
+          vrfConsumer,
+          callbackGasLimit,
+          numWords,
+          publicKey,
+          proof,
+          [...fastVerfifyParams[0]],
+          [...fastVerfifyParams[1]],
+        ),
+    ).to.not.be.reverted;
+  });
+
+  it("Incorrect fast verify params should revert", async function () {
+    const {samWitchVRF, vrfConsumer, alice, bob, alicesPrivateKey, bobsPrivateKey} =
+      await loadFixture(deployContractsFixture);
+
+    await samWitchVRF.registerConsumer(vrfConsumer);
+
+    const numWords = 1;
+    const callbackGasLimit = 1_000_000;
+    let tx = await vrfConsumer.requestRandomWords(numWords, callbackGasLimit);
+    let receipt = (await tx.wait()) || {logs: []};
+
+    let log = samWitchVRF.interface.parseLog(receipt.logs[0]);
+    const requestId = log?.args[0];
+
+    const {chainId} = await ethers.provider.getNetwork();
+    const encodedParams = ethers.AbiCoder.defaultAbiCoder().encode(
+      ["bytes32", "uint256", "uint256", "address", "uint256"],
+      [requestId, callbackGasLimit, numWords, await vrfConsumer.getAddress(), chainId],
+    );
+    const message = ethers.keccak256(encodedParams);
+
+    const publicKey = getPublicKey(bobsPrivateKey);
+    const proof = getProof(bobsPrivateKey, message);
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
+
+    await expect(
+      samWitchVRF
+        .connect(alice)
+        .fulfillRandomWords(
+          requestId,
+          bob,
+          vrfConsumer,
+          callbackGasLimit,
+          numWords,
+          publicKey,
+          proof,
+          [1, 2],
+          [...fastVerfifyParams[1]],
+        ),
+    ).to.be.revertedWithCustomError(samWitchVRF, "InvalidProof");
+
+    await expect(
+      samWitchVRF
+        .connect(alice)
+        .fulfillRandomWords(
+          requestId,
+          bob,
+          vrfConsumer,
+          callbackGasLimit,
+          numWords,
+          publicKey,
+          proof,
+          [...fastVerfifyParams[0]],
+          [...fastVerfifyParams[1]],
+        ),
     ).to.not.be.reverted;
   });
 
@@ -189,9 +293,19 @@ describe("SamWitchVRF", function () {
     const message = ethers.keccak256(encodedParams);
     const publicKey = getPublicKey(bobsPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
-
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
     await expect(
-      samWitchVRF.fulfillRandomWords(requestId, alice, vrfConsumer, callbackGasLimit, numWords, publicKey, proof),
+      samWitchVRF.fulfillRandomWords(
+        requestId,
+        alice,
+        vrfConsumer,
+        callbackGasLimit,
+        numWords,
+        publicKey,
+        proof,
+        [...fastVerfifyParams[0]],
+        [...fastVerfifyParams[1]],
+      ),
     ).to.be.revertedWithCustomError(samWitchVRF, "OnlyOracle");
   });
 
@@ -217,9 +331,19 @@ describe("SamWitchVRF", function () {
     const message = ethers.keccak256(encodedParams);
     const publicKey = getPublicKey(bobsPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
-
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
     await expect(
-      samWitchVRF.fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKey, proof),
+      samWitchVRF.fulfillRandomWords(
+        requestId,
+        bob,
+        vrfConsumer,
+        callbackGasLimit,
+        numWords,
+        publicKey,
+        proof,
+        [...fastVerfifyParams[0]],
+        [...fastVerfifyParams[1]],
+      ),
     ).to.be.revertedWithCustomError(samWitchVRF, "FulfillmentFailed");
   });
 
@@ -245,10 +369,20 @@ describe("SamWitchVRF", function () {
     const message = ethers.keccak256(encodedParams);
     const publicKey = getPublicKey(bobsPrivateKey);
     const proof = getProof(bobsPrivateKey, message);
-
+    const fastVerfifyParams = await samWitchVRF.computeFastVerifyParams(publicKey, proof, message);
     await vrfConsumer.setShouldRevert(true);
     await expect(
-      samWitchVRF.fulfillRandomWords(requestId, bob, vrfConsumer, callbackGasLimit, numWords, publicKey, proof),
+      samWitchVRF.fulfillRandomWords(
+        requestId,
+        bob,
+        vrfConsumer,
+        callbackGasLimit,
+        numWords,
+        publicKey,
+        proof,
+        [...fastVerfifyParams[0]],
+        [...fastVerfifyParams[1]],
+      ),
     ).to.be.revertedWithCustomError(samWitchVRF, "FulfillmentFailed");
   });
 

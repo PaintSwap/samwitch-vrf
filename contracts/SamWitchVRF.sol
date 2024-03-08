@@ -178,7 +178,7 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   }
 
   function _randomValueFromVRFProof(uint256[4] calldata _proof) private view returns (uint256 output) {
-    return uint256(keccak256(abi.encode(block.chainid, _proof[0], _proof[1], _proof[2], _proof[3])));
+    return uint256(keccak256(abi.encode(block.chainid, _proof[0], _proof[1])));
   }
 
   // solhint-disable-next-line no-empty-blocks

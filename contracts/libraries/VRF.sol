@@ -77,7 +77,7 @@ library VRF {
   function verify(
     uint256[2] calldata _publicKey,
     uint256[4] calldata _proof,
-    bytes memory _message
+    bytes calldata _message
   ) internal pure returns (bool) {
     // Step 2: Hash to try and increment (outputs a hashed value, a finite EC point in G)
     (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(_publicKey, _message);

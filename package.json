@@ -1,15 +1,15 @@
 {
   "name": "@samwitch/vrf",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "0xSamWitch <julian.assange12@outlook.com>",
   "repository": "https://github.com/PaintSwap/samwitch-vrf.git",
-  "description": "Provable random number generator using an Elliptic Curve VRF",
+  "description": "Provable random number generator using the SECP256K1-SHA256-TAI Elliptic Curve VRF",
   "keywords": [
     "vrf",
     "random",
     "verifiable-random-function",
     "solidity",
-    "elleptic-curve",
+    "elliptic-curve",
     "fantom"
   ],
   "contributors": [

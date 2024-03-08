@@ -75,8 +75,8 @@ library VRF {
   /// @param _message The message (in bytes) used for computing the VRF
   /// @return true, if VRF proof is valid
   function verify(
-    uint256[2] memory _publicKey,
-    uint256[4] memory _proof,
+    uint256[2] calldata _publicKey,
+    uint256[4] calldata _proof,
     bytes memory _message
   ) internal pure returns (bool) {
     // Step 2: Hash to try and increment (outputs a hashed value, a finite EC point in G)
@@ -105,11 +105,11 @@ library VRF {
   /// @param _vComponents The components required to compute `v` as `V = s*H - c*Gamma`
   /// @return true, if VRF proof is valid
   function fastVerify(
-    uint256[2] memory _publicKey,
-    uint256[4] memory _proof,
+    uint256[2] calldata _publicKey,
+    uint256[4] calldata _proof,
     bytes memory _message,
-    uint256[2] memory _uPoint,
-    uint256[4] memory _vComponents
+    uint256[2] calldata _uPoint,
+    uint256[4] calldata _vComponents
   ) internal pure returns (bool) {
     // Step 2: Hash to try and increment -> hashed value, a finite EC point in G
     (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(_publicKey, _message);
@@ -186,8 +186,8 @@ library VRF {
   /// @param _message The message (in bytes) used for computing the VRF
   /// @return The fast verify required parameters as the tuple `([uPointX, uPointY], [sHX, sHY, cGammaX, cGammaY])`
   function computeFastVerifyParams(
-    uint256[2] memory _publicKey,
-    uint256[4] memory _proof,
+    uint256[2] calldata _publicKey,
+    uint256[4] calldata _proof,
     bytes memory _message
   ) internal pure returns (uint256[2] memory, uint256[4] memory) {
     // Requirements for Step 3: U = s*B - c*Y (where B is the generator)
@@ -206,7 +206,7 @@ library VRF {
   /// @param _message The message used for computing the VRF
   /// @return The hash point in affine cooridnates
   function hashToTryAndIncrement(
-    uint256[2] memory _publicKey,
+    uint256[2] calldata _publicKey,
     bytes memory _message
   ) internal pure returns (uint, uint) {
     // Step 1: public key to bytes

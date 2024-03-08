@@ -77,10 +77,10 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     address fulfillAddress,
     uint256 callbackGasLimit,
     uint256 numWords,
-    uint256[2] memory publicKey,
-    uint256[4] memory proof,
-    uint256[2] memory uPoint,
-    uint256[4] memory vComponents
+    uint256[2] calldata publicKey,
+    uint256[4] calldata proof,
+    uint256[2] calldata uPoint,
+    uint256[4] calldata vComponents
   ) external override returns (bool callSuccess) {
     if (!oracles[oracle]) {
       revert OnlyOracle();
@@ -127,9 +127,9 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   /// @param message The message (in bytes) used for computing the VRF
   /// @return The fast verify required parameters as the tuple `([uPointX, uPointY], [sHX, sHY, cGammaX, cGammaY])`
   function computeFastVerifyParams(
-    uint256[2] memory publicKey,
-    uint256[4] memory proof,
-    bytes memory message
+    uint256[2] calldata publicKey,
+    uint256[4] calldata proof,
+    bytes calldata message
   ) external pure returns (uint256[2] memory, uint256[4] memory) {
     return VRF.computeFastVerifyParams(publicKey, proof, message);
   }
@@ -177,7 +177,7 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
     return success;
   }
 
-  function _randomValueFromVRFProof(uint256[4] memory _proof) private view returns (uint256 output) {
+  function _randomValueFromVRFProof(uint256[4] calldata _proof) private view returns (uint256 output) {
     return uint256(keccak256(abi.encode(block.chainid, _proof[0], _proof[1], _proof[2], _proof[3])));
   }
 

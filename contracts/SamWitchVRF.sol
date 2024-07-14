@@ -135,7 +135,7 @@ contract SamWitchVRF is ISamWitchVRF, UUPSUpgradeable, OwnableUpgradeable {
   }
 
   /// @notice Register a consumer to be able to request random words
-  ///@param consumer An address which is allowed to request random words
+  /// @param consumer An address which is allowed to request random words
   function registerConsumer(address consumer) external onlyOwner {
     consumers[consumer] = 1;
     emit ConsumerRegistered(consumer);
